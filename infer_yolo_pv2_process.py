@@ -105,11 +105,9 @@ class InferYoloPv2(dataprocess.C2dImageTask):
 
     def infer(self, src_image):
         param = self.getParam()
-        img0 = cv2.resize(src_image, (1280, 720), interpolation = cv2.INTER_LINEAR)
-
+        
         # Resize image to 640 and pad if necessary
-        img = letterbox(img0, int(param.input_size), self.stride)[0]
-
+        img = letterbox(src_image, int(param.input_size), self.stride)[0]
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
