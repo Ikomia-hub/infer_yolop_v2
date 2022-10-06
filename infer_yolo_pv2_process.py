@@ -92,6 +92,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         self.colors = None
         self.stride = 32
         self.input_size = None
+        self.box_color = [204, 204, 0]
         # Create parameters class
         if param is None:
             self.setParam(InferYoloPv2Param())
@@ -105,7 +106,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
 
     def infer(self, src_image):
         param = self.getParam()
-        
+
         # Resize image to 640 and pad if necessary
         img = letterbox(src_image, int(param.input_size), self.stride)[0]
         # Convert
@@ -135,7 +136,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         # Object detection
         obj_det_output = self.getOutput(1)
         if param.object:
-            for i, det in enumerate(pred):  # detections per image
+            for i, det in enumerate(pred): # detections per image
                 if len(det):
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], src_image.shape).round()
@@ -145,41 +146,40 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                         x2, y2 = (int(xyxy[2]), int(xyxy[3]))
                         w = float(x2 - x1)
                         h = float(y2 - y1)
-                        pen_color = [204, 204, 0]
                         obj_det_output.addObject(i, "vehicule", param.conf_thres,
-                                                    x1, y1, w, h, pen_color)
+                                                    x1, y1, w, h, self.box_color)
 
         # Segmentation
         if param.lane or param.driving:
+            # Get semantic output
             semantic_output = self.getOutput(2)
 
-            if param.lane and param.driving:
-                da_seg_mask = driving_area_mask(seg)
-                da_seg_mask = da_seg_mask.astype(dtype = 'uint8')
-                ll_seg_mask = lane_line_mask(ll)
-                ll_seg_mask[ll_seg_mask == 1] = 2
-                ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
+            # Get masks
+            da_seg_mask = driving_area_mask(seg)
+            da_seg_mask = da_seg_mask.astype(dtype = 'uint8')
 
+            ll_seg_mask = lane_line_mask(ll)
+            ll_seg_mask[ll_seg_mask == 1] = 2
+            ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
+
+            # For lanes or driving area only
             if param.lane and not param.driving:
                 da_seg_mask = np.zeros((720, 1280), dtype = np.uint8)
-                ll_seg_mask = lane_line_mask(ll)
-                ll_seg_mask[ll_seg_mask == 1] = 2
-                ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
-
             if param.driving and not param.lane:
-                da_seg_mask = driving_area_mask(seg)
-                da_seg_mask = da_seg_mask.astype(dtype = 'uint8')
-                ll_seg_mask = np.zeros((720,1280), dtype = np.uint8)
+                ll_seg_mask = np.zeros((720, 1280), dtype = np.uint8)
 
+            # Override overlap between lanes and driving area by lanes
             merge_mask = da_seg_mask + ll_seg_mask
-            h, w, _ = np.shape(src_image)
+            merge_mask[merge_mask == 3] = 2
+        
+            # Resize
+            h, w = np.shape(src_image)[:2]
             merge_mask = cv2.resize(merge_mask, (w, h), interpolation = cv2.INTER_NEAREST)
 
             semantic_output.setMask(merge_mask)
 
-            # Get output:
             self.setOutputColorMap(0, 2, self.colors)
-
+            
             semantic_output.setClassNames(self.classes, self.colors)
 
     def run(self):
@@ -215,8 +215,8 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                 self.model.half()  # to FP16
             # Set dropout and batch normalization layers to evaluation mode before running inference
             self.model.eval()
-            self.classes = ['background','road','lane','ovelap']
-            self.colors = [[0, 0, 0],[0, 255, 0],[255, 0, 0],[255,127,80]]
+            self.classes = ['background','road','lane']
+            self.colors = [[0, 0, 0],[0, 255, 0],[255, 0, 0]]
             param.update = False
             print("Will run on {}".format(self.device.type))
 
