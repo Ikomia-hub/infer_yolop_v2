@@ -41,6 +41,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
         self.model_path = os.path.join(
                         os.path.dirname(os.path.realpath(__file__)), "weights", "yolopv2.pt")
         self.cuda = torch.cuda.is_available()
+        self.input_size = 640
         self.conf_thres = 0.2
         self.iou_thres = 0.45
         self.update = False
@@ -52,6 +53,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
         self.cuda = strtobool(param_map["cuda"])
+        self.input_size = int(param_map["input_size"])
         self.conf_thres = float(param_map["conf_thres"])
         self.iou_thres = float(param_map["iou_thres"])
         self.update = strtobool(param_map["update"])
@@ -63,6 +65,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map["cuda"] = str(self.cuda)
+        param_map["input_size"] = str(self.input_size)
         param_map["conf_thres"] = str(self.conf_thres)
         param_map["iou_thres"] = str(self.iou_thres)
         param_map["update"] = str(self.update)
@@ -88,7 +91,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         self.classes = None
         self.colors = None
         self.stride = 32
-        self.imgsz = 640
+        self.input_size = None
         # Create parameters class
         if param is None:
             self.setParam(InferYoloPv2Param())
@@ -101,10 +104,11 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         return 1
 
     def infer(self, src_image):
+        param = self.getParam()
         img0 = cv2.resize(src_image, (1280, 720), interpolation = cv2.INTER_LINEAR)
 
         # Resize image to 640 and pad if necessary
-        img = letterbox(img0, self.imgsz, self.stride)[0]
+        img = letterbox(img0, int(param.input_size), self.stride)[0]
 
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
@@ -127,7 +131,6 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         # Reshape tensor
         pred = split_for_trace_model(pred,anchor_grid)
 
-        param = self.getParam()
         # Apply NMS (Non Maximum Suppression)
         pred = non_max_suppression(pred, param.conf_thres, param.iou_thres)
 
@@ -207,7 +210,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
             self.model  = torch.jit.load(weights) # for TorchScript archive
             self.model = self.model.to(self.device)
             if self.device.type != 'cpu':
-                self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
+                self.model(torch.zeros(1, 3, int(param.input_size), int(param.input_size)).
                 to(self.device).type_as(next(self.model.parameters())))
             half = False
             if half:

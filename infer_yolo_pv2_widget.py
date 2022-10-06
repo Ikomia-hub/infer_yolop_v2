@@ -49,6 +49,11 @@ class InferYoloPv2Widget(core.CWorkflowTaskWidget):
                         self.gridLayout, "Cuda",
                         self.parameters.cuda and is_available())
 
+        # Input size
+        self.check_input_sz = pyqtutils.append_double_spin(
+                            self.gridLayout, "Input size",
+                            self.parameters.input_size,min = 160., max = 640., step = 160)
+
         # Conf_thres
         self.spin_thr_conf = pyqtutils.append_double_spin(
                                 self.gridLayout, "Confidence threshold",
@@ -81,6 +86,7 @@ class InferYoloPv2Widget(core.CWorkflowTaskWidget):
         # Apply button clicked slot
         self.parameters.update = True
         self.parameters.cuda = self.check_cuda.isChecked()
+        self.parameters.input_size = self.check_input_sz.value()
         self.parameters.conf_thres = self.spin_thr_conf.value()
         self.parameters.iou_thres = self.spin_iou_conf.value()
         self.parameters.object = self.check_object.isChecked()
