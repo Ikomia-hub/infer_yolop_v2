@@ -110,13 +110,13 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         # Resize image to 640 and pad if necessary
         img = letterbox(src_image, int(param.input_size), self.stride)[0]
         # Convert
-        img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
+        img = img[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
 
         # Run inference
         img = torch.from_numpy(img).to(self.device)
         img = img.float()
-        img /= 255.0  # convert 0 - 255 to 0.0 - 1.0
+        img /= 255.0 # convert 0 - 255 to 0.0 - 1.0
 
         # Returns a new tensor with a dimension of size one inserted at the specified position.
         if img.ndimension() == 3:
@@ -146,7 +146,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                         x2, y2 = (int(xyxy[2]), int(xyxy[3]))
                         w = float(x2 - x1)
                         h = float(y2 - y1)
-                        obj_det_output.addObject(i, "vehicule", param.conf_thres,
+                        obj_det_output.addObject(i, "vehicule", float(xyxy[4]),
                                                     x1, y1, w, h, self.box_color)
 
         # Segmentation
@@ -171,7 +171,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
             # Override overlap between lanes and driving area by lanes
             merge_mask = da_seg_mask + ll_seg_mask
             merge_mask[merge_mask == 3] = 2
-        
+
             # Resize
             h, w = np.shape(src_image)[:2]
             merge_mask = cv2.resize(merge_mask, (w, h), interpolation = cv2.INTER_NEAREST)
@@ -179,7 +179,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
             semantic_output.setMask(merge_mask)
 
             self.setOutputColorMap(0, 2, self.colors)
-            
+
             semantic_output.setClassNames(self.classes, self.colors)
 
     def run(self):
@@ -212,7 +212,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                 to(self.device).type_as(next(self.model.parameters())))
             half = False
             if half:
-                self.model.half()  # to FP16
+                self.model.half() # to FP16
             # Set dropout and batch normalization layers to evaluation mode before running inference
             self.model.eval()
             self.classes = ['background','road','lane']
