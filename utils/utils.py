@@ -397,9 +397,7 @@ def box_iou(box1, box2):
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
     inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
-
-
-
+    
 
 class LoadImages:  # for inference
     def __init__(self, path, img_size=640, stride=32):
@@ -517,19 +515,21 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
 
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
-    
+
     return img, ratio, (dw, dh)
 
-def driving_area_mask(seg = None):
+def driving_area_mask(height, width, seg = None):
     da_predict = seg[:, :, 12:372,:]
     da_seg_mask = torch.nn.functional.interpolate(da_predict, scale_factor=2, mode='bilinear')
     _, da_seg_mask = torch.max(da_seg_mask, 1)
     da_seg_mask = da_seg_mask.int().squeeze().cpu().numpy()
+    da_seg_mask = cv2.resize(da_seg_mask, (width, height), interpolation = cv2.INTER_NEAREST)
     return da_seg_mask
 
-def lane_line_mask(ll = None):
+def lane_line_mask(height, width, ll = None ):
     ll_predict = ll[:, :, 12:372,:]
     ll_seg_mask = torch.nn.functional.interpolate(ll_predict, scale_factor=2, mode='bilinear')
     ll_seg_mask = torch.round(ll_seg_mask).squeeze(1)
     ll_seg_mask = ll_seg_mask.int().squeeze().cpu().numpy()
+    ll_seg_mask = cv2.resize(ll_seg_mask, (width, height), interpolation = cv2.INTER_NEAREST)
     return ll_seg_mask
