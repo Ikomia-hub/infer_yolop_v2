@@ -161,12 +161,9 @@ class InferYoloPv2(dataprocess.C2dImageTask):
 
         if param.lane:
             ll_seg_mask = lane_line_mask(h, w, ll)
-            ll_seg_mask[ll_seg_mask == 1] = 2
             ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
 
-        # Override overlap between lanes and driving area by lanes
-        merge_mask = da_seg_mask + ll_seg_mask
-        merge_mask[merge_mask == 3] = 2
+        merge_mask = np.where(ll_seg_mask == 1 , 2, da_seg_mask)
 
         semantic_output.setMask(merge_mask)
 
