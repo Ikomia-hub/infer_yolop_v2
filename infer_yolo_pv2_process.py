@@ -150,32 +150,29 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                                                     x1, y1, w, h, self.box_color)
 
         # Segmentation
-        if param.lane or param.driving:
-            # Get semantic output
-            semantic_output = self.getOutput(2)
-            h, w = np.shape(src_image)[:2]
-            # Get masks
+        semantic_output = self.getOutput(2)
+        h, w = np.shape(src_image)[:2]
+        da_seg_mask = np.zeros((h, w), dtype = np.uint8)
+        ll_seg_mask = np.zeros((h, w), dtype = np.uint8)
+
+        if param.driving:
             da_seg_mask = driving_area_mask(h, w, seg)
             da_seg_mask = da_seg_mask.astype(dtype = 'uint8')
+
+        if param.lane:
             ll_seg_mask = lane_line_mask(h, w, ll)
             ll_seg_mask[ll_seg_mask == 1] = 2
             ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
 
-            # For lanes or driving area only
-            if param.lane and not param.driving:
-                da_seg_mask = np.zeros((h, w), dtype = np.uint8)
-            if param.driving and not param.lane:
-                ll_seg_mask = np.zeros((h, w), dtype = np.uint8)
+        # Override overlap between lanes and driving area by lanes
+        merge_mask = da_seg_mask + ll_seg_mask
+        merge_mask[merge_mask == 3] = 2
 
-            # Override overlap between lanes and driving area by lanes
-            merge_mask = da_seg_mask + ll_seg_mask
-            merge_mask[merge_mask == 3] = 2
+        semantic_output.setMask(merge_mask)
 
-            semantic_output.setMask(merge_mask)
+        self.setOutputColorMap(0, 2, self.colors)
 
-            self.setOutputColorMap(0, 2, self.colors)
-
-            semantic_output.setClassNames(self.classes, self.colors)
+        semantic_output.setClassNames(self.classes, self.colors)
 
     def run(self):
         # Core function of your process
