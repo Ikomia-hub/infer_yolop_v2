@@ -52,7 +52,7 @@ class InferYoloPv2Widget(core.CWorkflowTaskWidget):
         # Input size
         self.check_input_sz = pyqtutils.append_double_spin(
                             self.gridLayout, "Input size",
-                            self.parameters.input_size,min = 160., max = 640., step = 160)
+                            self.parameters.input_size,min = 160., max = 640., step = 1.)
 
         # Conf_thres
         self.spin_thr_conf = pyqtutils.append_double_spin(

@@ -25,7 +25,7 @@ from ikomia import core, dataprocess
 from ikomia.utils import strtobool
 from infer_yolo_pv2.utils.utils import \
     scale_coords,non_max_suppression,split_for_trace_model,\
-    driving_area_mask,lane_line_mask,letterbox
+    driving_area_mask,lane_line_mask,letterbox, check_img_size
 
 
 # --------------------
@@ -90,7 +90,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         self.classes = None
         self.colors = None
         self.stride = 32
-        self.input_size = None
+        self.imgsz = 640
         self.box_color = [204, 204, 0]
         # Create parameters class
         if param is None:
@@ -107,7 +107,8 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         param = self.getParam()
 
         # Resize image to 640 and pad if necessary
-        img = letterbox(src_image, int(param.input_size), self.stride)[0]
+        img = letterbox(src_image, self.imgsz, self.stride)[0]
+
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
@@ -170,9 +171,6 @@ class InferYoloPv2(dataprocess.C2dImageTask):
             merge_mask = da_seg_mask + ll_seg_mask
             merge_mask[merge_mask == 3] = 2
 
-            # Resize
-            #3merge_mask = cv2.resize(merge_mask, (w, h), interpolation = cv2.INTER_NEAREST)
-
             semantic_output.setMask(merge_mask)
 
             self.setOutputColorMap(0, 2, self.colors)
@@ -202,10 +200,10 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                 url = "https://github.com/CAIC-AD/YOLOPv2/releases/download/V0.0.1/yolopv2.pt"
                 wget.download(url, out = param.model_path)
                 print("The model is downloaded")
-            self.model  = torch.jit.load(weights) # for TorchScript archive
-            self.model = self.model.to(self.device)
+            self.model  = torch.jit.load(weights) # for 
+            self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
             if self.device.type != 'cpu':
-                self.model(torch.zeros(1, 3, int(param.input_size), int(param.input_size)).
+                self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
                 to(self.device).type_as(next(self.model.parameters())))
             half = False
             if half:
