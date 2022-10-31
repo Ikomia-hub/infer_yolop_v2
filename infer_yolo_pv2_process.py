@@ -45,8 +45,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
         self.iou_thres = 0.45
         self.update = False
         self.object = True
-        self.lane = True
-        self.driving = True
+        self.road_lane = True
 
     def setParamMap(self, param_map):
         # Set parameters values from Ikomia application
@@ -57,8 +56,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
         self.iou_thres = float(param_map["iou_thres"])
         self.update = strtobool(param_map["update"])
         self.object = strtobool(param_map["object"])
-        self.lane = strtobool(param_map["lane"])
-        self.driving = strtobool(param_map["driving"])
+        self.road_lane = strtobool(param_map["road_lane"])
 
     def getParamMap(self):
         # Send parameters values to Ikomia application
@@ -69,8 +67,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
         param_map["iou_thres"] = str(self.iou_thres)
         param_map["update"] = str(self.update)
         param_map["object"] = str(self.object)
-        param_map["lane"] = str(self.lane)
-        param_map["driving"] = str(self.driving)
+        param_map["road_lane"] = str(self.road_lane)
         return param_map
 
 
@@ -85,13 +82,14 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         # Add input/output of the process here
         self.addOutput(dataprocess.CObjectDetectionIO())
         self.addOutput(dataprocess.CSemanticSegIO())
+        self.update = False
         self.device = None
         self.model = None
-        self.classes = None
-        self.colors = None
         self.stride = 32
         self.imgsz = 640
         self.box_color = [204, 204, 0]
+        self.classes = ['background', 'road', 'lane']
+        self.colors = [[0, 0, 0],[0, 255, 0],[255, 0, 0]]
         # Create parameters class
         if param is None:
             self.setParam(InferYoloPv2Param())
@@ -150,27 +148,26 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                                                     x1, y1, w, h, self.box_color)
 
         # Segmentation
-        semantic_output = self.getOutput(2)
-        h, w = np.shape(src_image)[:2]
-        da_seg_mask = np.zeros((h, w), dtype = np.uint8)
-        ll_seg_mask = np.zeros((h, w), dtype = np.uint8)
+        if param.road_lane:
+            semantic_output = self.getOutput(2)
+  
+            h, w = np.shape(src_image)[:2]
+            merge_mask = np.zeros((h, w), dtype = np.uint8)
 
-        if param.driving:
             da_seg_mask = driving_area_mask(h, w, seg)
             da_seg_mask = da_seg_mask.astype(dtype = 'uint8')
 
-        if param.lane:
             ll_seg_mask = lane_line_mask(h, w, ll)
             ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
 
-        merge_mask = np.where(ll_seg_mask == 1 , 2, da_seg_mask)
+            merge_mask = np.where(ll_seg_mask == 1 , 2, da_seg_mask)
 
-        semantic_output.setMask(merge_mask)
+            semantic_output.setMask(merge_mask)
 
-        self.setOutputColorMap(0, 2, self.colors)
+            self.setOutputColorMap(0, 2, self.colors)
 
-        semantic_output.setClassNames(self.classes, self.colors)
-
+            semantic_output.setClassNames(self.classes, self.colors)
+        
     def run(self):
         # Core function of your process
         # Call beginTaskRun for initialization
@@ -194,7 +191,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                 url = "https://github.com/CAIC-AD/YOLOPv2/releases/download/V0.0.1/yolopv2.pt"
                 wget.download(url, out = param.model_path)
                 print("The model is downloaded")
-            self.model  = torch.jit.load(weights) # for 
+            self.model  = torch.jit.load(weights)
             self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
             if self.device.type != 'cpu':
                 self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
@@ -204,8 +201,6 @@ class InferYoloPv2(dataprocess.C2dImageTask):
                 self.model.half() # to FP16
             # Set dropout and batch normalization layers to evaluation mode before running inference
             self.model.eval()
-            self.classes = ['background','road','lane']
-            self.colors = [[0, 0, 0],[0, 255, 0],[255, 0, 0]]
             param.update = False
             print("Will run on {}".format(self.device.type))
 

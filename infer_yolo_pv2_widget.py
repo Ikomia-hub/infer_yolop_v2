@@ -69,15 +69,10 @@ class InferYoloPv2Widget(core.CWorkflowTaskWidget):
                         self.gridLayout, "Vehicule",
                         self.parameters.object)
 
-        # Object detection
-        self.check_lane = pyqtutils.append_check(
-                        self.gridLayout, "Lane",
-                        self.parameters.lane)
-
-        # Object detection
-        self.check_driving = pyqtutils.append_check(
-                        self.gridLayout, "Driving area",
-                        self.parameters.driving)
+        # Driving area and lane detection
+        self.check_road_lane = pyqtutils.append_check(
+                        self.gridLayout, "Road and lane",
+                        self.parameters.road_lane)
 
         # Set widget layout
         self.setLayout(layout_ptr)
@@ -90,8 +85,7 @@ class InferYoloPv2Widget(core.CWorkflowTaskWidget):
         self.parameters.conf_thres = self.spin_thr_conf.value()
         self.parameters.iou_thres = self.spin_iou_conf.value()
         self.parameters.object = self.check_object.isChecked()
-        self.parameters.lane = self.check_lane.isChecked()
-        self.parameters.driving = self.check_driving.isChecked()
+        self.parameters.road_lane = self.check_road_lane.isChecked()
 
         # Send signal to launch the process
         self.emitApply(self.parameters)
