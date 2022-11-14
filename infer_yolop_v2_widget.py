@@ -18,7 +18,7 @@
 
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
-from infer_yolo_pv2.infer_yolo_pv2_process import InferYoloPv2Param
+from infer_yolop_v2.infer_yolop_v2_process import InferYolopV2Param
 
 # PyQt GUI framework
 from PyQt5.QtWidgets import *
@@ -29,12 +29,12 @@ from torch.cuda import is_available
 # - Class which implements widget associated with the process
 # - Inherits PyCore.CWorkflowTaskWidget from Ikomia API
 # --------------------
-class InferYoloPv2Widget(core.CWorkflowTaskWidget):
+class InferYolopV2Widget(core.CWorkflowTaskWidget):
 
     def __init__(self, param, parent):
         core.CWorkflowTaskWidget.__init__(self, parent)
         if param is None:
-            self.parameters = InferYoloPv2Param()
+            self.parameters = InferYolopV2Param()
         else:
             self.parameters = param
 
@@ -95,13 +95,13 @@ class InferYoloPv2Widget(core.CWorkflowTaskWidget):
 # - Factory class to build process widget object
 # - Inherits PyDataProcess.CWidgetFactory from Ikomia API
 # --------------------
-class InferYoloPv2WidgetFactory(dataprocess.CWidgetFactory):
+class InferYolopV2WidgetFactory(dataprocess.CWidgetFactory):
 
     def __init__(self):
         dataprocess.CWidgetFactory.__init__(self)
         # Set the name of the process -> it must be the same as the one declared in the process factory class
-        self.name = "infer_yolo_pv2"
+        self.name = "infer_yolop_v2"
 
     def create(self, param):
         # Create widget object
-        return InferYoloPv2Widget(param, None)
+        return InferYolopV2Widget(param, None)

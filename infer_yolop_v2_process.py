@@ -23,7 +23,7 @@ import copy
 import wget
 from ikomia import core, dataprocess
 from ikomia.utils import strtobool
-from infer_yolo_pv2.utils.utils import \
+from infer_yolop_v2.utils.utils import \
     scale_coords,non_max_suppression,split_for_trace_model,\
     driving_area_mask,lane_line_mask,letterbox, check_img_size
 
@@ -32,7 +32,7 @@ from infer_yolo_pv2.utils.utils import \
 # - Class to handle the process parameters
 # - Inherits PyCore.CWorkflowTaskParam from Ikomia API
 # --------------------
-class InferYoloPv2Param(core.CWorkflowTaskParam):
+class InferYolopV2Param(core.CWorkflowTaskParam):
 
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
@@ -75,7 +75,7 @@ class InferYoloPv2Param(core.CWorkflowTaskParam):
 # - Class which implements the process
 # - Inherits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferYoloPv2(dataprocess.C2dImageTask):
+class InferYolopV2(dataprocess.C2dImageTask):
 
     def __init__(self, name, param):
         dataprocess.C2dImageTask.__init__(self, name)
@@ -92,7 +92,7 @@ class InferYoloPv2(dataprocess.C2dImageTask):
         self.colors = [[0, 0, 0],[0, 255, 0],[255, 0, 0]]
         # Create parameters class
         if param is None:
-            self.setParam(InferYoloPv2Param())
+            self.setParam(InferYolopV2Param())
         else:
             self.setParam(copy.deepcopy(param))
 
@@ -221,12 +221,12 @@ class InferYoloPv2(dataprocess.C2dImageTask):
 # - Factory class to build process object
 # - Inherits PyDataProcess.CTaskFactory from Ikomia API
 # --------------------
-class InferYoloPv2Factory(dataprocess.CTaskFactory):
+class InferYolopV2Factory(dataprocess.CTaskFactory):
 
     def __init__(self):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
-        self.info.name = "infer_yolo_pv2"
+        self.info.name = "infer_yolop_v2"
         self.info.shortDescription = "Panoptic driving Perception using YoloPv2"
         self.info.description = "This plugin proposes inference for Panoptic driving Perception "\
                                 "This model detects traffic object detection,"\
@@ -251,4 +251,4 @@ class InferYoloPv2Factory(dataprocess.CTaskFactory):
 
     def create(self, param=None):
         # Create process object
-        return InferYoloPv2(self.info.name, param)
+        return InferYolopV2(self.info.name, param)
