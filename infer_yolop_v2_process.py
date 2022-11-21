@@ -24,8 +24,8 @@ import wget
 from ikomia import core, dataprocess
 from ikomia.utils import strtobool
 from infer_yolop_v2.utils.utils import \
-    scale_coords,non_max_suppression,split_for_trace_model,\
-    driving_area_mask,lane_line_mask,letterbox, check_img_size
+    scale_coords, non_max_suppression, split_for_trace_model,\
+    driving_area_mask, lane_line_mask, letterbox, check_img_size
 
 
 # --------------------
@@ -89,7 +89,7 @@ class InferYolopV2(dataprocess.C2dImageTask):
         self.imgsz = 640
         self.box_color = [204, 204, 0]
         self.classes = ['background', 'road', 'lane']
-        self.colors = [[0, 0, 0],[0, 255, 0],[255, 0, 0]]
+        self.colors = [[0, 0, 0], [0, 255, 0], [255, 0, 0]]
         # Create parameters class
         if param is None:
             self.setParam(InferYolopV2Param())
@@ -108,25 +108,25 @@ class InferYolopV2(dataprocess.C2dImageTask):
         img = letterbox(src_image, self.imgsz, self.stride)[0]
 
         # Convert
-        img = img[:, :, ::-1].transpose(2, 0, 1) # BGR to RGB, to 3x416x416
+        img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
 
         # Run inference
         img = torch.from_numpy(img).to(self.device)
         img = img.float()
-        img /= 255.0 # convert 0 - 255 to 0.0 - 1.0
+        img /= 255.0  # convert 0 - 255 to 0.0 - 1.0
 
         # Returns a new tensor with a dimension of size one inserted at the specified position.
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
 
         # Inference
-        [pred,anchor_grid], seg, ll = self.model(img)
+        [pred, anchor_grid], seg, ll = self.model(img)
         # Waste time: the incompatibility of torch.jit.trace
         # causes extra time consumption in demo version
         # but this problem will not appear in offical version
         # Reshape tensor
-        pred = split_for_trace_model(pred,anchor_grid)
+        pred = split_for_trace_model(pred, anchor_grid)
 
         # Apply NMS (Non Maximum Suppression)
         pred = non_max_suppression(pred, param.conf_thres, param.iou_thres)
@@ -134,7 +134,7 @@ class InferYolopV2(dataprocess.C2dImageTask):
         # Object detection
         obj_det_output = self.getOutput(1)
         if param.object:
-            for i, det in enumerate(pred): # detections per image
+            for i, det in enumerate(pred):  # detections per image
                 if len(det):
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], src_image.shape).round()
@@ -144,28 +144,26 @@ class InferYolopV2(dataprocess.C2dImageTask):
                         x2, y2 = (int(xyxy[2]), int(xyxy[3]))
                         w = float(x2 - x1)
                         h = float(y2 - y1)
-                        obj_det_output.addObject(i, "vehicule", float(xyxy[4]),
-                                                    x1, y1, w, h, self.box_color)
+                        obj_det_output.addObject(i, "vehicle", float(xyxy[4]), x1, y1, w, h, self.box_color)
 
         # Segmentation
+        semantic_output = self.getOutput(2)
         if param.road_lane:
-            semantic_output = self.getOutput(2)
-  
             h, w = np.shape(src_image)[:2]
-            merge_mask = np.zeros((h, w), dtype = np.uint8)
-
             da_seg_mask = driving_area_mask(h, w, seg)
-            da_seg_mask = da_seg_mask.astype(dtype = 'uint8')
+            da_seg_mask = da_seg_mask.astype(dtype='uint8')
 
             ll_seg_mask = lane_line_mask(h, w, ll)
-            ll_seg_mask = ll_seg_mask.astype(dtype = 'uint8')
+            ll_seg_mask = ll_seg_mask.astype(dtype='uint8')
 
-            merge_mask = np.where(ll_seg_mask == 1 , 2, da_seg_mask)
+            merge_mask = np.where(ll_seg_mask == 1, 2, da_seg_mask)
 
             semantic_output.setMask(merge_mask)
-
+            semantic_output.setClassNames(self.classes, self.colors)
             self.setOutputColorMap(0, 2, self.colors)
-
+        else:
+            h, w = np.shape(src_image)[:2]
+            semantic_output.setMask(np.zeros((h, w), dtype=np.uint8))
             semantic_output.setClassNames(self.classes, self.colors)
         
     def run(self):
@@ -184,21 +182,26 @@ class InferYolopV2(dataprocess.C2dImageTask):
             # Load model
             weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
             weights = param.model_path
+
             if not os.path.isdir(weights_folder):
                 os.mkdir(weights_folder)
+
             if not os.path.isfile(weights):
                 print("The model YOLOPv2 is downloading...")
                 url = "https://github.com/CAIC-AD/YOLOPv2/releases/download/V0.0.1/yolopv2.pt"
-                wget.download(url, out = param.model_path)
+                wget.download(url, out=param.model_path)
                 print("The model is downloaded")
-            self.model  = torch.jit.load(weights)
+
+            self.model = torch.jit.load(weights)
             self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
+
             if self.device.type != 'cpu':
                 self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
-                to(self.device).type_as(next(self.model.parameters())))
+                           to(self.device).type_as(next(self.model.parameters())))
             half = False
             if half:
-                self.model.half() # to FP16
+                self.model.half()  # to FP16
+
             # Set dropout and batch normalization layers to evaluation mode before running inference
             self.model.eval()
             param.update = False
@@ -246,8 +249,7 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         # Code source repository
         self.info.repository = "https://github.com/CAIC-AD/YOLOPv2"
         # Keywords used for search
-        self.info.keywords = "YOLOPv2, infer, panoptic, driving, ,traffic, object detection,"\
-                            "segmentation"
+        self.info.keywords = "YOLOPv2,infer,panoptic,driving,traffic,object detection,segmentation"
 
     def create(self, param=None):
         # Create process object
