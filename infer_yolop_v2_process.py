@@ -18,6 +18,7 @@
 
 import torch
 import numpy as np
+import cv2
 import os
 import copy
 import wget
@@ -61,6 +62,7 @@ class InferYolopV2Param(core.CWorkflowTaskParam):
     def getParamMap(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
+        param_map = core.ParamMap()
         param_map["cuda"] = str(self.cuda)
         param_map["input_size"] = str(self.input_size)
         param_map["conf_thres"] = str(self.conf_thres)
@@ -157,6 +159,7 @@ class InferYolopV2(dataprocess.C2dImageTask):
             ll_seg_mask = ll_seg_mask.astype(dtype='uint8')
 
             merge_mask = np.where(ll_seg_mask == 1, 2, da_seg_mask)
+            merge_mask = cv2.resize(merge_mask, (w, h), interpolation = cv2.INTER_NEAREST)
 
             semantic_output.setMask(merge_mask)
             semantic_output.setClassNames(self.classes, self.colors)
@@ -178,7 +181,7 @@ class InferYolopV2(dataprocess.C2dImageTask):
         param = self.getParam()
 
         if param.update or self.model is None:
-            self.device = torch.device("cuda") if param.cuda else torch.device("cpu")
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             # Load model
             weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
             weights = param.model_path
@@ -192,7 +195,7 @@ class InferYolopV2(dataprocess.C2dImageTask):
                 wget.download(url, out=param.model_path)
                 print("The model is downloaded")
 
-            self.model = torch.jit.load(weights)
+            self.model = torch.jit.load(weights).to(self.device)
             self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
 
             if self.device.type != 'cpu':
