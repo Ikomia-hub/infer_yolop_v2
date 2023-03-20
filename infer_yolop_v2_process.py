@@ -48,63 +48,66 @@ class InferYolopV2Param(core.CWorkflowTaskParam):
         self.object = True
         self.road_lane = True
 
-    def setParamMap(self, param_map):
+    def set_values(self, params):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        self.cuda = strtobool(param_map["cuda"])
-        self.input_size = int(param_map["input_size"])
-        self.conf_thres = float(param_map["conf_thres"])
-        self.iou_thres = float(param_map["iou_thres"])
-        self.update = strtobool(param_map["update"])
-        self.object = strtobool(param_map["object"])
-        self.road_lane = strtobool(param_map["road_lane"])
+        self.cuda = strtobool(params["cuda"])
+        self.input_size = int(params["input_size"])
+        self.conf_thres = float(params["conf_thres"])
+        self.iou_thres = float(params["iou_thres"])
+        self.update = strtobool(params["update"])
+        self.object = strtobool(params["object"])
+        self.road_lane = strtobool(params["road_lane"])
 
-    def getParamMap(self):
+    def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = core.ParamMap()
-        param_map["cuda"] = str(self.cuda)
-        param_map["input_size"] = str(self.input_size)
-        param_map["conf_thres"] = str(self.conf_thres)
-        param_map["iou_thres"] = str(self.iou_thres)
-        param_map["update"] = str(self.update)
-        param_map["object"] = str(self.object)
-        param_map["road_lane"] = str(self.road_lane)
-        return param_map
+        params = {
+                "cuda":str(self.cuda),
+                "input_size": str(self.input_size),
+                "input_size": str(self.input_size),
+                "conf_thres": str(self.input_size),
+                "iou_thres": str(self.iou_thres),
+                "update": str(self.update),
+                "object": str(self.object),
+                "road_lane":str(self.road_lane)
+            }
+
+        return params
 
 
 # --------------------
 # - Class which implements the process
 # - Inherits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferYolopV2(dataprocess.C2dImageTask):
+class InferYolopV2(dataprocess.CObjectDetectionTask):
 
     def __init__(self, name, param):
-        dataprocess.C2dImageTask.__init__(self, name)
         # Add input/output of the process here
-        self.addOutput(dataprocess.CObjectDetectionIO())
-        self.addOutput(dataprocess.CSemanticSegIO())
+        dataprocess.CObjectDetectionTask.__init__(self, name)
+        self.add_output(dataprocess.CSemanticSegmentationIO())
         self.update = False
         self.device = None
         self.model = None
         self.stride = 32
         self.imgsz = 640
+        self.colors = [[0,0,255], [255,0,0]]
         self.box_color = [204, 204, 0]
-        self.classes = ['background', 'road', 'lane']
-        self.colors = [[0, 0, 0], [0, 255, 0], [255, 0, 0]]
+        self.classes = ['road', 'lane']
+        self.names = "vehicle"
         # Create parameters class
         if param is None:
-            self.setParam(InferYolopV2Param())
+            self.set_param_object(InferYolopV2Param())
         else:
-            self.setParam(copy.deepcopy(param))
+            self.set_param_object(copy.deepcopy(param))
 
-    def getProgressSteps(self):
+    def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
 
     def infer(self, src_image):
-        param = self.getParam()
+        param = self.get_param_object()
 
         # Resize image to 640 and pad if necessary
         img = letterbox(src_image, self.imgsz, self.stride)[0]
@@ -132,9 +135,8 @@ class InferYolopV2(dataprocess.C2dImageTask):
 
         # Apply NMS (Non Maximum Suppression)
         pred = non_max_suppression(pred, param.conf_thres, param.iou_thres)
-
+        self.set_names([self.names])
         # Object detection
-        obj_det_output = self.getOutput(1)
         if param.object:
             for i, det in enumerate(pred):  # detections per image
                 if len(det):
@@ -146,10 +148,10 @@ class InferYolopV2(dataprocess.C2dImageTask):
                         x2, y2 = (int(xyxy[2]), int(xyxy[3]))
                         w = float(x2 - x1)
                         h = float(y2 - y1)
-                        obj_det_output.addObject(i, "vehicle", float(xyxy[4]), x1, y1, w, h, self.box_color)
-
+                        self.add_object(i, 0, float(xyxy[4]), x1, y1, w, h)
+   
         # Segmentation
-        semantic_output = self.getOutput(2)
+        semantic_output = self.get_output(2)
         if param.road_lane:
             h, w = np.shape(src_image)[:2]
             da_seg_mask = driving_area_mask(h, w, seg)
@@ -161,24 +163,21 @@ class InferYolopV2(dataprocess.C2dImageTask):
             merge_mask = np.where(ll_seg_mask == 1, 2, da_seg_mask)
             merge_mask = cv2.resize(merge_mask, (w, h), interpolation = cv2.INTER_NEAREST)
 
-            semantic_output.setMask(merge_mask)
-            semantic_output.setClassNames(self.classes, self.colors)
-            self.setOutputColorMap(0, 2, self.colors)
-        else:
-            h, w = np.shape(src_image)[:2]
-            semantic_output.setMask(np.zeros((h, w), dtype=np.uint8))
-            semantic_output.setClassNames(self.classes, self.colors)
+            semantic_output.set_class_names(self.classes)
+            semantic_output.set_class_colors(self.colors)
+            semantic_output.set_mask(merge_mask)
+            self.set_output_color_map(0, 2, self.colors, True)
         
     def run(self):
         # Core function of your process
-        # Call beginTaskRun for initialization
-        self.beginTaskRun()
-        image_in = self.getInput(0)
+        # Call begin_task_run for initialization
+        self.begin_task_run()
+        image_in = self.get_input(0)
 
         # Get image from input/output (numpy array):
-        src_image = image_in.getImage()
+        src_image = image_in.get_image()
 
-        param = self.getParam()
+        param = self.get_param_object()
 
         if param.update or self.model is None:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -214,13 +213,13 @@ class InferYolopV2(dataprocess.C2dImageTask):
             self.infer(src_image)
 
         # Forward input image
-        self.forwardInputImage(0, 0)
+        self.forward_input_image(0, 0)
 
         # Step progress bar:
-        self.emitStepProgress()
+        self.emit_step_progress()
 
-        # Call endTaskRun to finalize process
-        self.endTaskRun()
+        # Call end_task_run to finalize process
+        self.end_task_run()
 
 
 # --------------------
@@ -233,14 +232,14 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
         self.info.name = "infer_yolop_v2"
-        self.info.shortDescription = "Panoptic driving Perception using YoloPv2"
+        self.info.short_description = "Panoptic driving Perception using YoloPv2"
         self.info.description = "This plugin proposes inference for Panoptic driving Perception "\
                                 "This model detects traffic object detection,"\
                                 "drivable area segmentation and lane line detection."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
-        self.info.version = "1.0.0"
-        self.info.iconPath = "icons/icon.png"
+        self.info.version = "1.1.0"
+        self.info.icon_path = "icons/icon.png"
         self.info.authors = "Cheng Han, Qichao Zhao, Shuyi Zhang, Yinzi Chen,"\
                             "Zhenlin Zhang, Jinwei Yuan"
         self.info.article = "YOLOPv2: Better, Faster, Stronger for Panoptic Driving Perception."
@@ -248,7 +247,7 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         self.info.year = 2022
         self.info.license = "MIT License"
         # URL of documentation
-        self.info.documentationLink = "https://arxiv.org/abs/2208.11434"
+        self.info.documentation_link = "https://arxiv.org/abs/2208.11434"
         # Code source repository
         self.info.repository = "https://github.com/CAIC-AD/YOLOPv2"
         # Keywords used for search

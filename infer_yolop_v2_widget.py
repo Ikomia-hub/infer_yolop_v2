@@ -75,9 +75,9 @@ class InferYolopV2Widget(core.CWorkflowTaskWidget):
                         self.parameters.road_lane)
 
         # Set widget layout
-        self.setLayout(layout_ptr)
+        self.set_layout(layout_ptr)
 
-    def onApply(self):
+    def on_apply(self):
         # Apply button clicked slot
         self.parameters.update = True
         self.parameters.cuda = self.check_cuda.isChecked()
@@ -88,7 +88,7 @@ class InferYolopV2Widget(core.CWorkflowTaskWidget):
         self.parameters.road_lane = self.check_road_lane.isChecked()
 
         # Send signal to launch the process
-        self.emitApply(self.parameters)
+        self.emit_apply(self.parameters)
 
 
 # --------------------
