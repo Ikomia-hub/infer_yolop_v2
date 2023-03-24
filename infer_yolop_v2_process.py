@@ -65,12 +65,11 @@ class InferYolopV2Param(core.CWorkflowTaskParam):
         params = {
                 "cuda":str(self.cuda),
                 "input_size": str(self.input_size),
-                "input_size": str(self.input_size),
-                "conf_thres": str(self.input_size),
+                "conf_thres": str(self.conf_thres),
                 "iou_thres": str(self.iou_thres),
                 "update": str(self.update),
                 "object": str(self.object),
-                "road_lane":str(self.road_lane)
+                "road_lane": str(self.road_lane)
             }
 
         return params
