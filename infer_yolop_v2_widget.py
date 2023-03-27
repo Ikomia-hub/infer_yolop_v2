@@ -50,9 +50,9 @@ class InferYolopV2Widget(core.CWorkflowTaskWidget):
                         self.parameters.cuda and is_available())
 
         # Input size
-        self.check_input_sz = pyqtutils.append_double_spin(
+        self.check_input_sz = pyqtutils.append_spin(
                             self.gridLayout, "Input size",
-                            self.parameters.input_size,min = 160., max = 640., step = 1.)
+                            self.parameters.input_size,min = 160, max = 640, step = 1)
 
         # Conf_thres
         self.spin_thr_conf = pyqtutils.append_double_spin(
