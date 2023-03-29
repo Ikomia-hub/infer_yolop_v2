@@ -211,10 +211,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         with torch.no_grad():
             self.infer(src_image)
 
-        # Forward input image
-        self.forward_input_image(0, 0)
-
-        # Step progress bar:
+          # Step progress bar:
         self.emit_step_progress()
 
         # Call end_task_run to finalize process
