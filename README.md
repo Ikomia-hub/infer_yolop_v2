@@ -19,10 +19,9 @@
     </a> 
 </p>
 
-This plugin proposes inference for Panoptic driving Perception This model detects traffic object detection,drivable area segmentation and lane line detection.
+Run YOLOP_v2 for Panoptic driving Perception. This model detects traffic object detection, drivable area segmentation and lane line detection.
 
-[Insert illustrative image here. Image must be accessible publicly, in algorithm Github repository for example.
-<img src="images/illustration.png"  alt="Illustrative image" width="30%" height="30%">]
+![Road object detection](https://raw.githubusercontent.com/Ikomia-hub/infer_yolop_v2/feat/new_readme/icons/output.jpg)
 
 ## :rocket: Use with Ikomia API
 
@@ -36,11 +35,9 @@ pip install ikomia
 
 #### 2. Create your workflow
 
-[Change the sample image URL to fit algorithm purpose]
-
 ```python
-import ikomia
 from ikomia.dataprocess.workflow import Workflow
+from ikomia.utils.displayIO import display
 
 # Init your workflow
 wf = Workflow()
@@ -49,7 +46,11 @@ wf = Workflow()
 algo = wf.add_task(name="infer_yolop_v2", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://www.cnet.com/a/img/resize/4797a22dd672697529df19c2658364a85e0f9eb4/hub/2023/02/14/9406d927-a754-4fa9-8251-8b1ccd010d5a/ring-car-cam-2023-02-14-14h09m20s720.png?auto=webp&width=1920")
+
+# Inpect your result
+display(algo.get_image_with_graphics())
+display(algo.get_output(0).get_overlay_mask())
 ```
 
 ## :sunny: Use with Ikomia Studio
@@ -62,13 +63,16 @@ Ikomia Studio offers a friendly UI with the same features as the API.
 
 ## :pencil: Set algorithm parameters
 
-[Explain each algorithm parameters]
+- **input_size** (int) - default '640': Size of the input image.
+- **conf_thres** (float) default '0.2': Box threshold for the prediction [0,1].
+- **iou_thres** (float) - default '0.45': Intersection over Union, degree of overlap between two boxes [0,1].
+- **object** (bool) - default 'True': Detect vehicles.
+- **road_lane** (bool) - default 'True': Detect road and line.
 
-[Change the sample image URL to fit algorithm purpose]
 
 ```python
-import ikomia
 from ikomia.dataprocess.workflow import Workflow
+from ikomia.utils.displayIO import display
 
 # Init your workflow
 wf = Workflow()
@@ -76,15 +80,21 @@ wf = Workflow()
 # Add algorithm
 algo = wf.add_task(name="infer_yolop_v2", auto_connect=True)
 
+
 algo.set_parameters({
-    "param1": "value1",
-    "param2": "value2",
-    ...
+    "input_size": "640",
+    "conf_thres": "0.2",
+    "iou_thres": "0.45",
+    "object": "True",
+    "road_lane": "True"
 })
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://www.cnet.com/a/img/resize/4797a22dd672697529df19c2658364a85e0f9eb4/hub/2023/02/14/9406d927-a754-4fa9-8251-8b1ccd010d5a/ring-car-cam-2023-02-14-14h09m20s720.png?auto=webp&width=1920")
 
+# Inpect your result
+display(algo.get_image_with_graphics())
+display(algo.get_output(0).get_overlay_mask())
 ```
 
 ## :mag: Explore algorithm outputs
@@ -102,16 +112,12 @@ wf = Workflow()
 algo = wf.add_task(name="infer_yolop_v2", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://www.cnet.com/a/img/resize/4797a22dd672697529df19c2658364a85e0f9eb4/hub/2023/02/14/9406d927-a754-4fa9-8251-8b1ccd010d5a/ring-car-cam-2023-02-14-14h09m20s720.png?auto=webp&width=1920")
 
 # Iterate over outputs
-for output in algo.get_outputs()
+for output in algo.get_outputs():
     # Print information
     print(output)
     # Export it to JSON
     output.to_json()
 ```
-
-## :fast_forward: Advanced usage 
-
-[optional]
