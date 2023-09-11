@@ -21,7 +21,7 @@
 
 Run YOLOP_v2 for Panoptic driving Perception. This model detects traffic object detection, drivable area segmentation and lane line detection.
 
-![Road object detection](https://raw.githubusercontent.com/Ikomia-hub/infer_yolop_v2/feat/new_readme/icons/output.jpg)
+![Road object detection](https://raw.githubusercontent.com/Ikomia-hub/infer_yolop_v2/feat/new_readme/icons/output1.jpg)
 
 ## :rocket: Use with Ikomia API
 
