@@ -69,6 +69,7 @@ Ikomia Studio offers a friendly UI with the same features as the API.
 - **object** (bool) - default 'True': Detect vehicles.
 - **road_lane** (bool) - default 'True': Detect road and line.
 
+**Parameters** should be in **strings format**  when added to the dictionary.
 
 ```python
 from ikomia.dataprocess.workflow import Workflow
