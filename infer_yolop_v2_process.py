@@ -86,7 +86,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         dataprocess.CObjectDetectionTask.__init__(self, name)
         self.add_output(dataprocess.CSemanticSegmentationIO())
         self.update = False
-        self.device = None
+        self.device = torch.device("cpu")
         self.model = None
         self.stride = 32
         self.imgsz = 640
@@ -179,7 +179,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         param = self.get_param_object()
 
         if param.update or self.model is None:
-            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.device = torch.device(
+                "cuda") if param.cuda else torch.device("cpu")
             # Load model
             weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
             weights = param.model_path
@@ -234,7 +235,7 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
                                 "drivable area segmentation and lane line detection."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
-        self.info.version = "1.1.0"
+        self.info.version = "1.1.1"
         self.info.icon_path = "icons/icon.png"
         self.info.authors = "Cheng Han, Qichao Zhao, Shuyi Zhang, Yinzi Chen,"\
                             "Zhenlin Zhang, Jinwei Yuan"
