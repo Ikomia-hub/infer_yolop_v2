@@ -71,7 +71,6 @@ class InferYolopV2Param(core.CWorkflowTaskParam):
                 "object": str(self.object),
                 "road_lane": str(self.road_lane)
             }
-
         return params
 
 
@@ -180,7 +179,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
 
         if param.update or self.model is None:
             self.device = torch.device(
-                "cuda") if param.cuda else torch.device("cpu")
+                "cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
             # Load model
             weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
             weights = param.model_path
@@ -194,7 +193,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
                 wget.download(url, out=param.model_path)
                 print("The model is downloaded")
 
-            self.model = torch.jit.load(weights).to(self.device)
+            self.model = torch.jit.load(weights, map_location=self.device)
             self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
 
             if self.device.type != 'cpu':
