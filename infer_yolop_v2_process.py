@@ -229,9 +229,6 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         # Set process information as string here
         self.info.name = "infer_yolop_v2"
         self.info.short_description = "Panoptic driving Perception using YoloPv2"
-        self.info.description = "This plugin proposes inference for Panoptic driving Perception "\
-                                "This model detects traffic object detection,"\
-                                "drivable area segmentation and lane line detection."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
         self.info.version = "1.1.1"
@@ -245,7 +242,8 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         # URL of documentation
         self.info.documentation_link = "https://arxiv.org/abs/2208.11434"
         # Code source repository
-        self.info.repository = "https://github.com/CAIC-AD/YOLOPv2"
+        self.info.repository = "https://github.com/Ikomia-hub/infer_yolop_v2"
+        self.info.original_repository = "https://github.com/CAIC-AD/YOLOPv2"
         # Keywords used for search
         self.info.keywords = "YOLOPv2,infer,panoptic,driving,traffic,object detection,segmentation"
 
