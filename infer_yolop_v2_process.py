@@ -246,6 +246,8 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         self.info.original_repository = "https://github.com/CAIC-AD/YOLOPv2"
         # Keywords used for search
         self.info.keywords = "YOLOPv2,infer,panoptic,driving,traffic,object detection,segmentation"
+        self.info.algo_type = core.AlgoType.INFER
+        self.info.algo_tasks = "OBJECT_DETECTION,INSTANCE_SEGMENTATION,SEMANTIC_SEGMENTATION"
 
     def create(self, param=None):
         # Create process object
