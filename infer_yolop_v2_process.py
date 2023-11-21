@@ -147,19 +147,19 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
                         w = float(x2 - x1)
                         h = float(y2 - y1)
                         self.add_object(i, 0, float(xyxy[4]), x1, y1, w, h)
-   
+
         # Segmentation
         semantic_output = self.get_output(2)
         if param.road_lane:
-            h, w = np.shape(src_image)[:2]
-            da_seg_mask = driving_area_mask(h, w, seg)
+            h_img, w_img = np.shape(src_image)[:2]
+            da_seg_mask = driving_area_mask(h_img, w_img, seg)
             da_seg_mask = da_seg_mask.astype(dtype='uint8')
 
-            ll_seg_mask = lane_line_mask(h, w, ll)
+            ll_seg_mask = lane_line_mask(h_img, w, ll)
             ll_seg_mask = ll_seg_mask.astype(dtype='uint8')
 
             merge_mask = np.where(ll_seg_mask == 1, 2, da_seg_mask)
-            merge_mask = cv2.resize(merge_mask, (w, h), interpolation = cv2.INTER_NEAREST)
+            merge_mask = cv2.resize(merge_mask, (w_img, h_img), interpolation = cv2.INTER_NEAREST)
 
             semantic_output.set_class_names(self.classes)
             semantic_output.set_class_colors(self.colors)
