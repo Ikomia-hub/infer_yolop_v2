@@ -523,23 +523,23 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
     return img, ratio, (dw, dh)
 
-def driving_area_mask(height, width, seg = None):
+
+def driving_area_mask(seg = None):
     da_predict = seg[:, :, 12:372,:]
-    #da_seg_mask = torch.nn.functional.interpolate(da_predict, scale_factor=2, mode='bilinear')
-    da_seg_mask = torch.nn.functional.interpolate(da_predict, size=[height, width], mode='bilinear')
+    da_seg_mask = torch.nn.functional.interpolate(da_predict, scale_factor=2, mode='bilinear')
     _, da_seg_mask = torch.max(da_seg_mask, 1)
     da_seg_mask = da_seg_mask.int().squeeze().cpu().numpy()
-    #da_seg_mask = cv2.resize(da_seg_mask, (width, height), interpolation = cv2.INTER_NEAREST)
+
     return da_seg_mask
 
-def lane_line_mask(height, width, ll = None ):
+def lane_line_mask(ll = None):
     ll_predict = ll[:, :, 12:372,:]
-    ll_seg_mask = torch.nn.functional.interpolate(ll_predict, size=[height, width], mode='bilinear')
-    #ll_seg_mask = torch.nn.functional.interpolate(ll_predict, scale_factor=2, mode='bilinear')
-    ll_seg_mask = torch.round(ll_seg_mask).squeeze(1) 
+    ll_seg_mask = torch.nn.functional.interpolate(ll_predict, scale_factor=2, mode='bilinear')
+    ll_seg_mask = torch.round(ll_seg_mask).squeeze(1)
     ll_seg_mask = ll_seg_mask.int().squeeze().cpu().numpy()
-    #ll_seg_mask = cv2.resize(ll_seg_mask, (width, height), interpolation = cv2.INTER_NEAREST)
+
     return ll_seg_mask
+
 
 def make_divisible(x, divisor):
     # Returns nearest x divisible by divisor

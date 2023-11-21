@@ -26,7 +26,7 @@ from ikomia import core, dataprocess
 from ikomia.utils import strtobool
 from infer_yolop_v2.utils.utils import \
     scale_coords, non_max_suppression, split_for_trace_model,\
-    driving_area_mask, lane_line_mask, letterbox, check_img_size
+    driving_area_mask, lane_line_mask, letterbox, check_img_size, LoadImages
 
 
 # --------------------
@@ -108,7 +108,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         param = self.get_param_object()
 
         # Resize image to 640 and pad if necessary
-        img = letterbox(src_image, self.imgsz, self.stride)[0]
+        img0 = cv2.resize(src_image, (1280,720), interpolation=cv2.INTER_LINEAR)
+        img = letterbox(img0, self.imgsz, self.stride)[0]
 
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
@@ -152,15 +153,14 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         semantic_output = self.get_output(2)
         if param.road_lane:
             h_img, w_img = np.shape(src_image)[:2]
-            da_seg_mask = driving_area_mask(h_img, w_img, seg)
+            da_seg_mask = driving_area_mask(seg)
             da_seg_mask = da_seg_mask.astype(dtype='uint8')
 
-            ll_seg_mask = lane_line_mask(h_img, w, ll)
+            ll_seg_mask = lane_line_mask(ll)
             ll_seg_mask = ll_seg_mask.astype(dtype='uint8')
 
             merge_mask = np.where(ll_seg_mask == 1, 2, da_seg_mask)
             merge_mask = cv2.resize(merge_mask, (w_img, h_img), interpolation = cv2.INTER_NEAREST)
-
             semantic_output.set_class_names(self.classes)
             semantic_output.set_class_colors(self.colors)
             semantic_output.set_mask(merge_mask)
@@ -195,6 +195,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
 
             self.model = torch.jit.load(weights, map_location=self.device)
             self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
+            print(self.imgsz)
 
             if self.device.type != 'cpu':
                 self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
@@ -231,7 +232,7 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Panoptic driving Perception using YoloPv2"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
-        self.info.version = "1.1.1"
+        self.info.version = "1.2.1"
         self.info.icon_path = "icons/icon.png"
         self.info.authors = "Cheng Han, Qichao Zhao, Shuyi Zhang, Yinzi Chen,"\
                             "Zhenlin Zhang, Jinwei Yuan"
