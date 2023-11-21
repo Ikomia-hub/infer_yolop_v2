@@ -195,7 +195,6 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
 
             self.model = torch.jit.load(weights, map_location=self.device)
             self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
-            print(self.imgsz)
 
             if self.device.type != 'cpu':
                 self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
