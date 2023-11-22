@@ -25,8 +25,8 @@ import wget
 from ikomia import core, dataprocess
 from ikomia.utils import strtobool
 from infer_yolop_v2.utils.utils import \
-    scale_coords, non_max_suppression, split_for_trace_model,\
-    driving_area_mask, lane_line_mask, letterbox, check_img_size, LoadImages
+    non_max_suppression, split_for_trace_model,\
+    driving_area_mask, lane_line_mask, letterbox, check_img_size
 
 
 # --------------------
@@ -89,6 +89,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         self.model = None
         self.stride = 32
         self.imgsz = 640
+        self.img_resize = (1280,720)
         self.colors = [[0,0,255], [255,0,0]]
         self.box_color = [204, 204, 0]
         self.classes = ['road', 'lane']
@@ -108,9 +109,11 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         param = self.get_param_object()
 
         # Resize image to 640 and pad if necessary
-        img0 = cv2.resize(src_image, (1280,720), interpolation=cv2.INTER_LINEAR)
-        img = letterbox(img0, self.imgsz, self.stride)[0]
-
+        h_scr, w_src = src_image.shape[:2]
+        scale_ini = [w_src / self.img_resize[0], h_scr / self.img_resize[1]]
+        img0 = cv2.resize(src_image, self.img_resize, interpolation=cv2.INTER_LINEAR)
+        img, scale, pad = letterbox(img0, self.imgsz, self.stride)
+        pad_w, pad_h = pad
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
@@ -139,16 +142,16 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         if param.object:
             for i, det in enumerate(pred):  # detections per image
                 if len(det):
-                    # Rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], src_image.shape).round()
                     # draw object bounding box around each detection
                     for xyxy in reversed(det):
-                        x1, y1 = (int(xyxy[0]), int(xyxy[1]))
-                        x2, y2 = (int(xyxy[2]), int(xyxy[3]))
-                        w = float(x2 - x1)
-                        h = float(y2 - y1)
-                        self.add_object(i, 0, float(xyxy[4]), x1, y1, w, h)
-
+                        x1 = (xyxy[0] / scale[0] - pad_w) * scale_ini[0]
+                        y1 = (xyxy[1] / scale[1] - (pad_h * 2)) * scale_ini[1]
+                        x2 = (xyxy[2] / scale[0] - pad_w) * scale_ini[0]
+                        y2 = (xyxy[3] / scale[1] - (pad_h * 2)) * scale_ini[1]
+                        w = x2 - x1
+                        h = y2 - y1
+                        self.add_object(i, 0, float(xyxy[4]), float(x1), float(y1), float(w), float(h))
+          
         # Segmentation
         semantic_output = self.get_output(2)
         if param.road_lane:
@@ -165,7 +168,7 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
             semantic_output.set_class_colors(self.colors)
             semantic_output.set_mask(merge_mask)
             self.set_output_color_map(0, 2, self.colors, True)
-        
+
     def run(self):
         # Core function of your process
         # Call begin_task_run for initialization
