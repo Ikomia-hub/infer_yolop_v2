@@ -234,7 +234,7 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Panoptic driving Perception using YoloPv2"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
-        self.info.version = "1.2.1"
+        self.info.version = "1.2.2"
         self.info.icon_path = "icons/icon.png"
         self.info.authors = "Cheng Han, Qichao Zhao, Shuyi Zhang, Yinzi Chen,"\
                             "Zhenlin Zhang, Jinwei Yuan"
