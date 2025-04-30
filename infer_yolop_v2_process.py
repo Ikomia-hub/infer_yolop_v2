@@ -25,7 +25,7 @@ import wget
 from ikomia import core, dataprocess
 from ikomia.utils import strtobool
 from infer_yolop_v2.utils.utils import \
-    non_max_suppression, split_for_trace_model,\
+    non_max_suppression, split_for_trace_model, \
     driving_area_mask, lane_line_mask, letterbox, check_img_size
 
 
@@ -39,7 +39,7 @@ class InferYolopV2Param(core.CWorkflowTaskParam):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
         self.model_path = os.path.join(
-                        os.path.dirname(os.path.realpath(__file__)), "weights", "yolopv2.pt")
+            os.path.dirname(os.path.realpath(__file__)), "weights", "yolopv2.pt")
         self.cuda = torch.cuda.is_available()
         self.input_size = 640
         self.conf_thres = 0.2
@@ -63,14 +63,14 @@ class InferYolopV2Param(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         params = {
-                "cuda":str(self.cuda),
-                "input_size": str(self.input_size),
-                "conf_thres": str(self.conf_thres),
-                "iou_thres": str(self.iou_thres),
-                "update": str(self.update),
-                "object": str(self.object),
-                "road_lane": str(self.road_lane)
-            }
+            "cuda": str(self.cuda),
+            "input_size": str(self.input_size),
+            "conf_thres": str(self.conf_thres),
+            "iou_thres": str(self.iou_thres),
+            "update": str(self.update),
+            "object": str(self.object),
+            "road_lane": str(self.road_lane)
+        }
         return params
 
 
@@ -89,8 +89,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         self.model = None
         self.stride = 32
         self.imgsz = 640
-        self.img_resize = (1280,720)
-        self.colors = [[0,0,255], [255,0,0]]
+        self.img_resize = (1280, 720)
+        self.colors = [[0, 0, 255], [255, 0, 0]]
         self.box_color = [204, 204, 0]
         self.classes = ['road', 'lane']
         self.names = "vehicle"
@@ -111,7 +111,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
         # Resize image to 640 and pad if necessary
         h_scr, w_src = src_image.shape[:2]
         scale_ini = [w_src / self.img_resize[0], h_scr / self.img_resize[1]]
-        img0 = cv2.resize(src_image, self.img_resize, interpolation=cv2.INTER_LINEAR)
+        img0 = cv2.resize(src_image, self.img_resize,
+                          interpolation=cv2.INTER_LINEAR)
         img, scale, pad = letterbox(img0, self.imgsz, self.stride)
         pad_w, pad_h = pad
         # Convert
@@ -150,8 +151,9 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
                         y2 = (xyxy[3] / scale[1] - (pad_h * 2)) * scale_ini[1]
                         w = x2 - x1
                         h = y2 - y1
-                        self.add_object(i, 0, float(xyxy[4]), float(x1), float(y1), float(w), float(h))
-          
+                        self.add_object(i, 0, float(xyxy[4]), float(
+                            x1), float(y1), float(w), float(h))
+
         # Segmentation
         semantic_output = self.get_output(2)
         if param.road_lane:
@@ -163,7 +165,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
             ll_seg_mask = ll_seg_mask.astype(dtype='uint8')
 
             merge_mask = np.where(ll_seg_mask == 1, 2, da_seg_mask)
-            merge_mask = cv2.resize(merge_mask, (w_img, h_img), interpolation = cv2.INTER_NEAREST)
+            merge_mask = cv2.resize(
+                merge_mask, (w_img, h_img), interpolation=cv2.INTER_NEAREST)
             semantic_output.set_class_names(self.classes)
             semantic_output.set_class_colors(self.colors)
             semantic_output.set_mask(merge_mask)
@@ -184,7 +187,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
             self.device = torch.device(
                 "cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
             # Load model
-            weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
+            weights_folder = os.path.join(os.path.dirname(
+                os.path.abspath(__file__)), "weights")
             weights = param.model_path
 
             if not os.path.isdir(weights_folder):
@@ -197,7 +201,8 @@ class InferYolopV2(dataprocess.CObjectDetectionTask):
                 print("The model is downloaded")
 
             self.model = torch.jit.load(weights, map_location=self.device)
-            self.imgsz = check_img_size(int(param.input_size), s=self.stride)  # check img_size
+            self.imgsz = check_img_size(
+                int(param.input_size), s=self.stride)  # check img_size
 
             if self.device.type != 'cpu':
                 self.model(torch.zeros(1, 3, self.imgsz, self.imgsz).
@@ -247,6 +252,10 @@ class InferYolopV2Factory(dataprocess.CTaskFactory):
         # Code source repository
         self.info.repository = "https://github.com/Ikomia-hub/infer_yolop_v2"
         self.info.original_repository = "https://github.com/CAIC-AD/YOLOPv2"
+
+        # Python compatibility
+        self.info.min_python_version = "3.8.0"
+
         # Keywords used for search
         self.info.keywords = "YOLOPv2,infer,panoptic,driving,traffic,object detection,segmentation"
         self.info.algo_type = core.AlgoType.INFER
